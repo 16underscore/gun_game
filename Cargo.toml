@@ -1,0 +1,8 @@
+[package]
+name = "gun_game"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy_ecs = "*"
+valence = { git = "https://github.com/valence-rs/valence" }
