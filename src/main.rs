@@ -1,3 +1,5 @@
+mod server_list_ping;
+
 use valence::client::despawn_disconnected_clients;
 use valence::client::event::{
 	default_event_handler, InteractWithEntity, StartSprinting, StopSprinting,
@@ -15,7 +17,7 @@ struct CombatState {
 
 pub fn main() {
 	App::new()
-		.add_plugin(ServerPlugin::new(()))
+		.add_plugin(ServerPlugin::new(server_list_ping::MyCallbacks))
 		.add_startup_system(setup)
 		.add_system_to_stage(EventLoop, default_event_handler)
 		.add_system_to_stage(EventLoop, handle_combat_events)
