@@ -6,13 +6,14 @@ use valence::client::event::{
 };
 use valence::math::Vec3Swizzles;
 use valence::prelude::*;
-use valence::protocol::packets::s2c::play::WorldBorderInitialize;
+use valence::protocol::packets::s2c::play::{SetHealth, WorldBorderInitialize};
 use valence::protocol::{VarInt, VarLong};
 
 #[derive(Component)]
 struct CombatState {
 	last_attacked_tick: i64,
 	has_bonus_knockback: bool,
+	health: f32,
 }
 
 pub fn main() {
@@ -74,6 +75,7 @@ fn init_clients(
 			CombatState {
 				last_attacked_tick: 0,
 				has_bonus_knockback: false,
+				health: 20.0,
 			},
 			McEntity::with_uuid(EntityKind::Player, instance, client.uuid()),
 		));
@@ -142,7 +144,18 @@ fn handle_combat_events(
 
 		attacker_state.has_bonus_knockback = false;
 
+		victim_state.health -= 1.0;
+
+		if victim_state.health < 0.5 {
+			victim_client.set_position([0.0, 1.0, 0.0])
+		}
+
 		victim_client.trigger_status(EntityStatus::DamageFromGenericSource);
+		victim_client.write_packet(&SetHealth {
+			health: victim_state.health,
+			food: VarInt(20),
+			food_saturation: 5.0,
+		});
 		victim_entity.trigger_status(EntityStatus::DamageFromGenericSource);
 	}
 }
