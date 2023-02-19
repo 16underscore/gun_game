@@ -6,8 +6,9 @@ use valence::client::event::{
 };
 use valence::math::Vec3Swizzles;
 use valence::prelude::*;
-use valence::protocol::packets::s2c::play::{SetHealth, WorldBorderInitialize};
-use valence::protocol::{VarInt, VarLong};
+use valence::protocol::packets::s2c::play::WorldBorderInitialize;
+use valence::protocol::types::SoundCategory;
+use valence::protocol::{Sound, VarInt, VarLong};
 
 #[derive(Component)]
 struct CombatState {
@@ -18,7 +19,10 @@ struct CombatState {
 
 pub fn main() {
 	App::new()
-		.add_plugin(ServerPlugin::new(server_list_ping::MyCallbacks))
+		.add_plugin(
+			ServerPlugin::new(server_list_ping::MyCallbacks)
+				.with_connection_mode(ConnectionMode::Offline),
+		)
 		.add_startup_system(setup)
 		.add_system_to_stage(EventLoop, default_event_handler)
 		.add_system_to_stage(EventLoop, handle_combat_events)
@@ -112,7 +116,7 @@ fn handle_combat_events(
 			continue
 		};
 
-		let Ok([(attacker_client, mut attacker_state, _), (mut victim_client, mut victim_state, mut victim_entity)]) =
+		let Ok([(mut attacker_client, mut attacker_state, _), (mut victim_client, mut victim_state, mut victim_entity)]) =
 			clients.get_many_mut([attacker_client, victim_client])
 		else {
 			continue
@@ -147,15 +151,20 @@ fn handle_combat_events(
 		victim_state.health -= 1.0;
 
 		if victim_state.health < 0.5 {
-			victim_client.set_position([0.0, 1.0, 0.0])
+			let pos = attacker_client.position();
+			attacker_client.play_sound(
+				Sound::EntityPlayerLevelup,
+				SoundCategory::Player,
+				pos,
+				1.0,
+				1.0,
+			);
+			victim_client.set_position([0.0, 1.0, 0.0]);
+			victim_state.health = 20.0;
 		}
 
 		victim_client.trigger_status(EntityStatus::DamageFromGenericSource);
-		victim_client.write_packet(&SetHealth {
-			health: victim_state.health,
-			food: VarInt(20),
-			food_saturation: 5.0,
-		});
+		victim_client.player_mut().set_health(victim_state.health);
 		victim_entity.trigger_status(EntityStatus::DamageFromGenericSource);
 	}
 }
