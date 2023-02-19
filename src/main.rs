@@ -2,7 +2,7 @@ mod server_list_ping;
 
 use valence::client::despawn_disconnected_clients;
 use valence::client::event::{
-	default_event_handler, InteractWithEntity, StartSprinting, StopSprinting,
+	default_event_handler, ChatCommand, InteractWithEntity, StartSprinting, StopSprinting,
 };
 use valence::math::Vec3Swizzles;
 use valence::prelude::*;
@@ -21,6 +21,7 @@ pub fn main() {
 		.add_startup_system(setup)
 		.add_system_to_stage(EventLoop, default_event_handler)
 		.add_system_to_stage(EventLoop, handle_combat_events)
+		.add_system_to_stage(EventLoop, interpret_command)
 		.add_system(init_clients)
 		.add_system(despawn_disconnected_clients)
 		.add_system_set(PlayerList::default_system_set())
@@ -143,5 +144,31 @@ fn handle_combat_events(
 
 		victim_client.trigger_status(EntityStatus::DamageFromGenericSource);
 		victim_entity.trigger_status(EntityStatus::DamageFromGenericSource);
+	}
+}
+
+fn interpret_command(mut clients: Query<&mut Client>, mut events: EventReader<ChatCommand>) {
+	for event in events.iter() {
+		let Ok(mut client) = clients.get_component_mut::<Client>(event.client) else {
+			continue;
+		};
+
+		let mut args = event.command.split_whitespace();
+
+		match args.next() {
+			Some("help") => {
+				client.send_message("commands:");
+				client.send_message("- help");
+				client.send_message("- spec");
+			}
+			Some("spec") => {
+				let mode = match client.game_mode() {
+					GameMode::Adventure => GameMode::Spectator,
+					_ => GameMode::Adventure,
+				};
+				client.set_game_mode(mode);
+			}
+			_ => continue,
+		}
 	}
 }
