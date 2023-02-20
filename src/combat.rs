@@ -4,8 +4,6 @@ use valence::prelude::*;
 use valence::protocol::types::SoundCategory;
 use valence::protocol::Sound;
 
-use crate::respawn;
-
 #[derive(Component)]
 pub struct CombatState {
 	pub last_attacked_tick: i64,
@@ -77,8 +75,8 @@ pub fn handle_combat_events(
 
 		victim_state.health -= 1.0;
 
+		let pos = attacker_client.position();
 		if victim_state.health < 0.5 {
-			let pos = attacker_client.position();
 			attacker_client.play_sound(
 				Sound::EntityPlayerLevelup,
 				SoundCategory::Player,
@@ -86,8 +84,16 @@ pub fn handle_combat_events(
 				1.0,
 				1.0,
 			);
-			respawn(&mut victim_client);
+			victim_client.set_position([0.0, 3.0, 0.0]);
+			victim_state.health = 20.0;
 		}
+		attacker_client.play_sound(
+			Sound::EntityPlayerHurt,
+			SoundCategory::Player,
+			pos,
+			1.0,
+			1.0,
+		);
 
 		victim_client.trigger_status(EntityStatus::DamageFromGenericSource);
 		victim_client.player_mut().set_health(victim_state.health);

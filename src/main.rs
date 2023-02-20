@@ -81,12 +81,8 @@ fn init_clients(
 fn teleport_oob_clients(mut clients: Query<&mut Client>) {
 	for mut client in &mut clients {
 		if client.position().y < -15.0 {
-			respawn(&mut client);
+			client.set_position([0.0, 3.0, 0.0]);
+			client.player_mut().set_health(20.0);
 		}
 	}
-}
-
-pub fn respawn(client: &mut Mut<Client>) {
-	client.set_position([0.0, 3.0, 0.0]);
-	client.player_mut().set_health(20.0);
 }
