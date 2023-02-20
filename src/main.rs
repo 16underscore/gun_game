@@ -7,6 +7,7 @@ use valence::client::event::default_event_handler;
 use valence::prelude::*;
 use valence::protocol::packets::s2c::play::WorldBorderInitialize;
 use valence::protocol::{VarInt, VarLong};
+use valence_anvil::AnvilWorld;
 
 pub fn main() {
 	App::new()
@@ -18,6 +19,7 @@ pub fn main() {
 		.add_system(init_clients)
 		.add_system(despawn_disconnected_clients)
 		.add_system_set(PlayerList::default_system_set())
+		.add_system(teleport_oob_clients)
 		.run();
 }
 
@@ -26,15 +28,17 @@ fn setup(world: &mut World) {
 		.resource::<Server>()
 		.new_instance(DimensionId::default());
 
-	for z in -2..2 {
-		for x in -2..2 {
-			instance.insert_chunk([x, z], Chunk::default());
-		}
-	}
-
-	for z in -15..15 {
-		for x in -15..15 {
-			instance.set_block([x, 0, z], BlockState::DEEPSLATE_TILES);
+	let mut anvil = AnvilWorld::new("world");
+	for x in -2..2 {
+		for z in -2..2 {
+			if let Ok(Some(anvil_chunk)) = anvil.read_chunk(x, z) {
+				let mut chunk = Chunk::new(24);
+				valence_anvil::to_valence(&anvil_chunk.data, &mut chunk, 4, |_| BiomeId::default())
+					.unwrap();
+				instance.insert_chunk([x, z], chunk);
+			} else {
+				instance.insert_chunk([x, z], Chunk::default());
+			}
 		}
 	}
 
@@ -50,7 +54,7 @@ fn init_clients(
 
 	for (entity, mut client) in &mut clients {
 		client.set_game_mode(GameMode::Adventure);
-		client.set_position([0.0, 1.0, 0.0]);
+		client.set_position([0.0, 3.0, 0.0]);
 		client.set_instance(instance);
 		client.write_packet(&WorldBorderInitialize {
 			x: 0.0,
@@ -72,4 +76,17 @@ fn init_clients(
 			McEntity::with_uuid(EntityKind::Player, instance, client.uuid()),
 		));
 	}
+}
+
+fn teleport_oob_clients(mut clients: Query<&mut Client>) {
+	for mut client in &mut clients {
+		if client.position().y < -15.0 {
+			respawn(&mut client);
+		}
+	}
+}
+
+pub fn respawn(client: &mut Mut<Client>) {
+	client.set_position([0.0, 3.0, 0.0]);
+	client.player_mut().set_health(20.0);
 }
