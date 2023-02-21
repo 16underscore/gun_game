@@ -6,12 +6,7 @@ pub struct MyCallbacks;
 
 #[async_trait]
 impl AsyncCallbacks for MyCallbacks {
-	async fn server_list_ping(
-		&self,
-		_shared: &SharedServer,
-		_remote_addr: SocketAddr,
-		_protocol_version: i32,
-	) -> ServerListPing {
+	async fn server_list_ping(&self, _: &SharedServer, _: SocketAddr, _: i32) -> ServerListPing {
 		ServerListPing::Respond {
 			online_players: -1,
 			max_players: 3,

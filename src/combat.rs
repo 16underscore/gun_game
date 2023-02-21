@@ -4,11 +4,12 @@ use valence::prelude::*;
 use valence::protocol::types::SoundCategory;
 use valence::protocol::Sound;
 
-#[derive(Component)]
+use crate::level::Level;
+
+#[derive(Component, Default)]
 pub struct CombatState {
 	pub last_attacked_tick: i64,
 	pub has_bonus_knockback: bool,
-	pub health: f32,
 }
 
 pub fn handle_combat_events(
@@ -17,16 +18,16 @@ pub fn handle_combat_events(
 	mut start_sprinting: EventReader<StartSprinting>,
 	mut stop_sprinting: EventReader<StopSprinting>,
 	mut interact_with_entity: EventReader<InteractWithEntity>,
-	mut clients: Query<(&mut Client, &mut CombatState, &mut McEntity)>,
+	mut clients: Query<(&mut Client, &mut CombatState, &mut McEntity, &mut Level)>,
 ) {
 	for &StartSprinting { client } in start_sprinting.iter() {
-		if let Ok((_, mut state, _)) = clients.get_mut(client) {
+		if let Ok((_, mut state, ..)) = clients.get_mut(client) {
 			state.has_bonus_knockback = true;
 		}
 	}
 
 	for &StopSprinting { client } in stop_sprinting.iter() {
-		if let Ok((_, mut state, _)) = clients.get_mut(client) {
+		if let Ok((_, mut state, ..)) = clients.get_mut(client) {
 			state.has_bonus_knockback = false;
 		}
 	}
@@ -41,8 +42,10 @@ pub fn handle_combat_events(
 			continue
 		};
 
-		let Ok([(mut attacker_client, mut attacker_state, _), (mut victim_client, mut victim_state, mut victim_entity)]) =
-			clients.get_many_mut([attacker_client, victim_client])
+		let Ok([
+			(mut attacker_client, mut attacker_state, _, mut attacker_level),
+			(mut victim_client, mut victim_state, mut victim_entity, mut victim_level)
+			]) = clients.get_many_mut([attacker_client, victim_client])
 		else {
 			continue
 		};
@@ -73,30 +76,24 @@ pub fn handle_combat_events(
 
 		attacker_state.has_bonus_knockback = false;
 
-		victim_state.health -= 1.0;
+		let mut health = victim_client.player().get_health() - 1.0;
 
-		let pos = attacker_client.position();
-		if victim_state.health < 0.5 {
-			attacker_client.play_sound(
-				Sound::EntityPlayerLevelup,
-				SoundCategory::Player,
-				pos,
-				1.0,
-				1.0,
-			);
+		if health < 0.5 {
+			play_sound(&mut attacker_client, Sound::EntityPlayerLevelup);
 			victim_client.set_position([0.0, 3.0, 0.0]);
-			victim_state.health = 20.0;
+			health = 20.0;
+			attacker_level.increase();
+			victim_level.decrease();
 		}
-		attacker_client.play_sound(
-			Sound::EntityPlayerHurt,
-			SoundCategory::Player,
-			pos,
-			1.0,
-			1.0,
-		);
+		play_sound(&mut attacker_client, Sound::EntityPlayerHurt);
 
 		victim_client.trigger_status(EntityStatus::DamageFromGenericSource);
-		victim_client.player_mut().set_health(victim_state.health);
+		victim_client.player_mut().set_health(health);
 		victim_entity.trigger_status(EntityStatus::DamageFromGenericSource);
 	}
+}
+
+fn play_sound(client: &mut Mut<Client>, sound: Sound) {
+	let pos = client.position();
+	client.play_sound(sound, SoundCategory::Player, pos, 1.0, 1.0);
 }
