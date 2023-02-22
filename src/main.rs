@@ -4,6 +4,7 @@ mod level;
 mod server_list_ping;
 mod world;
 
+use level::EquipmentLevel;
 use valence::client::despawn_disconnected_clients;
 use valence::client::event::default_event_handler;
 use valence::prelude::*;
@@ -12,6 +13,7 @@ use valence::protocol::{VarInt, VarLong};
 
 pub fn main() {
 	App::new()
+		.insert_resource(EquipmentLevel::new())
 		.add_plugin(ServerPlugin::new(server_list_ping::MyCallbacks))
 		.add_startup_system(world::setup)
 		.add_system_to_stage(EventLoop, default_event_handler)

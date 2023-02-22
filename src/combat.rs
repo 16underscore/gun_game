@@ -4,7 +4,7 @@ use valence::prelude::*;
 use valence::protocol::types::SoundCategory;
 use valence::protocol::Sound;
 
-use crate::level::Level;
+use crate::level::{EquipmentLevel, Level};
 
 #[derive(Component, Default)]
 pub struct CombatState {
@@ -15,6 +15,7 @@ pub struct CombatState {
 pub fn handle_combat_events(
 	manager: Res<McEntityManager>,
 	server: Res<Server>,
+	equipment: Res<EquipmentLevel>,
 	mut start_sprinting: EventReader<StartSprinting>,
 	mut stop_sprinting: EventReader<StopSprinting>,
 	mut interact_with_entity: EventReader<InteractWithEntity>,
@@ -90,8 +91,8 @@ pub fn handle_combat_events(
 			play_sound(&mut attacker_client, Sound::EntityPlayerLevelup);
 			victim_client.set_position([0.0, 3.0, 0.0]);
 			health = 20.0;
-			attacker_level.increase();
-			victim_level.decrease();
+			attacker_level.increase(&mut attacker_client, &equipment);
+			victim_level.decrease(&mut victim_client, &equipment);
 		}
 		play_sound(&mut attacker_client, Sound::EntityPlayerHurt);
 
