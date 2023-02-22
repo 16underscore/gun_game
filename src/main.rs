@@ -1,3 +1,4 @@
+mod chat;
 mod combat;
 mod level;
 mod server_list_ping;
@@ -15,6 +16,7 @@ pub fn main() {
 		.add_startup_system(world::setup)
 		.add_system_to_stage(EventLoop, default_event_handler)
 		.add_system_to_stage(EventLoop, combat::handle_combat_events)
+		.add_system_to_stage(EventLoop, chat::handle_message_events)
 		.add_system(init_clients)
 		.add_system(despawn_disconnected_clients)
 		.add_system_set(PlayerList::default_system_set())
