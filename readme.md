@@ -2,8 +2,8 @@
 a rust minecraft gun game server based on [valence](https://github.com/valence-rs/valence)
 ## todo
 * items + upgrade
-* health
+* ~~health~~
 * respawn (tp)
 * safe zone
-* custom map
+* ~~custom map~~
 * scoreboard
