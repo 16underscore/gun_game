@@ -33,33 +33,41 @@ pub fn handle_combat_events(
 	}
 
 	for &InteractWithEntity {
-		client: attacker_client,
+		client: attacker_entity,
 		entity_id,
 		..
 	} in interact_with_entity.iter()
 	{
-		let Some(victim_client) = manager.get_with_protocol_id(entity_id) else {
+		let Some(victim_entity) = manager.get_with_protocol_id(entity_id) else {
 			continue
 		};
 
 		let Ok([
 			(mut attacker_client, mut attacker_state, _, mut attacker_level),
-			(mut victim_client, mut victim_state, mut victim_entity, mut victim_level)
-			]) = clients.get_many_mut([attacker_client, victim_client])
+			(mut victim_client, mut victim_state, mut victim_mc_entity, mut victim_level)
+			]) = clients.get_many_mut([attacker_entity, victim_entity])
 		else {
 			continue
 		};
 
+		// hit delay
 		if server.current_tick() - victim_state.last_attacked_tick < 10 {
+			continue;
+		}
+
+		let victim_pos = victim_client.position();
+		let attacker_pos = attacker_client.position();
+
+		if is_in_safe_zone(victim_pos) || is_in_safe_zone(attacker_pos) {
 			continue;
 		}
 
 		victim_state.last_attacked_tick = server.current_tick();
 
-		let victim_pos = victim_client.position().xz();
-		let attacker_pos = attacker_client.position().xz();
+		let victim_xz = victim_pos.xz();
+		let attacker_xz = attacker_pos.xz();
 
-		let dir = (victim_pos - attacker_pos).normalize().as_vec2();
+		let dir = (victim_xz - attacker_xz).normalize().as_vec2();
 
 		let knockback_xz = if attacker_state.has_bonus_knockback {
 			18.0
@@ -89,8 +97,12 @@ pub fn handle_combat_events(
 
 		victim_client.trigger_status(EntityStatus::DamageFromGenericSource);
 		victim_client.player_mut().set_health(health);
-		victim_entity.trigger_status(EntityStatus::DamageFromGenericSource);
+		victim_mc_entity.trigger_status(EntityStatus::DamageFromGenericSource);
 	}
+}
+
+fn is_in_safe_zone(pos: DVec3) -> bool {
+	pos.x < 3.0 && pos.y > 2.75 && pos.z < 3.0
 }
 
 fn play_sound(client: &mut Mut<Client>, sound: Sound) {
