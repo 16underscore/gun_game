@@ -19,29 +19,21 @@ impl Level {
 
 fn equip(level: &Level, client: &mut Mut<Client>, equipment: &Res<EquipmentLevel>) {
 	if let Some(equipment) = equipment.get(level) {
-		set_slot(client, 0, equipment.weapon);
-		if let Some(chest) = equipment.chest {
-			set_slot(client, 38, chest);
-		}
-		if let Some(legs) = equipment.legs {
-			set_slot(client, 37, legs);
-		}
-		if let Some(head) = equipment.head {
-			set_slot(client, 39, head);
-		}
-		if let Some(feet) = equipment.feet {
-			set_slot(client, 36, feet);
-		}
+		set_slot(client, 0, Some(equipment.weapon));
+		set_slot(client, 38, equipment.chest);
+		set_slot(client, 37, equipment.legs);
+		set_slot(client, 39, equipment.head);
+		set_slot(client, 36, equipment.feet);
 	}
 }
 
-fn set_slot(client: &mut Mut<Client>, id: i16, item: ItemKind) {
-	let item_stack = ItemStack::new(item, 1, None);
+fn set_slot(client: &mut Mut<Client>, id: i16, item: Option<ItemKind>) {
+	let item_stack = item.and_then(|item| Some(ItemStack::new(item, 1, None)));
 	client.write_packet(&SetContainerSlot {
 		window_id: -2,
 		state_id: VarInt(0),
 		slot_idx: id,
-		slot_data: Some(item_stack),
+		slot_data: item_stack,
 	});
 }
 
@@ -53,38 +45,89 @@ pub struct EquipmentLevel {
 impl EquipmentLevel {
 	pub fn new() -> Self {
 		let mut equipments: Vec<Equipment> = Vec::new();
-		equipments.push(EquipmentBuilder::new(ItemKind::WoodenSword).build());
-		equipments.push(
-			EquipmentBuilder::new(ItemKind::WoodenSword)
-				.chest(ItemKind::LeatherChestplate)
-				.build(),
-		);
-		equipments.push(
-			EquipmentBuilder::new(ItemKind::WoodenSword)
-				.chest(ItemKind::LeatherChestplate)
-				.legs(ItemKind::LeatherLeggings)
-				.build(),
-		);
-		equipments.push(
-			EquipmentBuilder::new(ItemKind::WoodenSword)
-				.chest(ItemKind::LeatherChestplate)
-				.legs(ItemKind::LeatherLeggings)
-				.head(ItemKind::LeatherHelmet)
-				.build(),
-		);
-		equipments.push(
-			EquipmentBuilder::new(ItemKind::WoodenSword)
-				.chest(ItemKind::LeatherChestplate)
-				.legs(ItemKind::LeatherLeggings)
-				.head(ItemKind::LeatherHelmet)
-				.feet(ItemKind::LeatherBoots)
-				.build(),
-		);
-		equipments.push(
-			EquipmentBuilder::new(ItemKind::Trident)
-				.head(ItemKind::TurtleHelmet)
-				.build(),
-		);
+
+		// wood / leather
+		let mut equipment = Equipment::new(ItemKind::WoodenSword);
+		equipments.push(equipment.clone());
+		equipment.set_chest(ItemKind::LeatherChestplate);
+		equipments.push(equipment.clone());
+		equipment.set_legs(ItemKind::LeatherLeggings);
+		equipments.push(equipment.clone());
+		equipment.set_head(ItemKind::LeatherHelmet);
+		equipments.push(equipment.clone());
+		equipment.set_feet(ItemKind::LeatherBoots);
+		equipments.push(equipment.clone());
+
+		// gold
+		equipment.set_weapon(ItemKind::GoldenSword);
+		equipments.push(equipment.clone());
+		equipment.set_chest(ItemKind::GoldenChestplate);
+		equipments.push(equipment.clone());
+		equipment.set_legs(ItemKind::GoldenLeggings);
+		equipments.push(equipment.clone());
+		equipment.set_head(ItemKind::GoldenHelmet);
+		equipments.push(equipment.clone());
+		equipment.set_feet(ItemKind::GoldenBoots);
+		equipments.push(equipment.clone());
+
+		// stone / chainmail
+		equipment.set_weapon(ItemKind::StoneSword);
+		equipments.push(equipment.clone());
+		equipment.set_chest(ItemKind::ChainmailChestplate);
+		equipments.push(equipment.clone());
+		equipment.set_legs(ItemKind::ChainmailLeggings);
+		equipments.push(equipment.clone());
+		equipment.set_head(ItemKind::ChainmailHelmet);
+		equipments.push(equipment.clone());
+		equipment.set_feet(ItemKind::ChainmailBoots);
+		equipments.push(equipment.clone());
+
+		// iron
+		equipment.set_weapon(ItemKind::IronSword);
+		equipments.push(equipment.clone());
+		equipment.set_chest(ItemKind::IronChestplate);
+		equipments.push(equipment.clone());
+		equipment.set_legs(ItemKind::IronLeggings);
+		equipments.push(equipment.clone());
+		equipment.set_head(ItemKind::IronHelmet);
+		equipments.push(equipment.clone());
+		equipment.set_feet(ItemKind::IronBoots);
+		equipments.push(equipment.clone());
+
+		// diamond
+		equipment.set_weapon(ItemKind::DiamondSword);
+		equipments.push(equipment.clone());
+		equipment.set_chest(ItemKind::DiamondChestplate);
+		equipments.push(equipment.clone());
+		equipment.set_legs(ItemKind::DiamondLeggings);
+		equipments.push(equipment.clone());
+		equipment.set_head(ItemKind::DiamondHelmet);
+		equipments.push(equipment.clone());
+		equipment.set_feet(ItemKind::DiamondBoots);
+		equipments.push(equipment.clone());
+
+		// netherite
+		equipment.set_weapon(ItemKind::NetheriteSword);
+		equipments.push(equipment.clone());
+		equipment.set_chest(ItemKind::NetheriteChestplate);
+		equipments.push(equipment.clone());
+		equipment.set_legs(ItemKind::NetheriteLeggings);
+		equipments.push(equipment.clone());
+		equipment.set_head(ItemKind::NetheriteHelmet);
+		equipments.push(equipment.clone());
+		equipment.set_feet(ItemKind::NetheriteBoots);
+		equipments.push(equipment);
+
+		// trident / turtle
+		let equipment = Equipment {
+			weapon: ItemKind::Trident,
+			head: Some(ItemKind::TurtleHelmet),
+			chest: None,
+			legs: None,
+			feet: None,
+		};
+		equipments.push(equipment);
+
 		Self { equipments }
 	}
 	fn get(&self, level: &Level) -> Option<&Equipment> {
@@ -92,15 +135,8 @@ impl EquipmentLevel {
 	}
 }
 
+#[derive(Clone)]
 pub struct Equipment {
-	pub weapon: ItemKind,
-	pub head: Option<ItemKind>,
-	pub chest: Option<ItemKind>,
-	pub legs: Option<ItemKind>,
-	pub feet: Option<ItemKind>,
-}
-
-struct EquipmentBuilder {
 	weapon: ItemKind,
 	head: Option<ItemKind>,
 	chest: Option<ItemKind>,
@@ -108,7 +144,7 @@ struct EquipmentBuilder {
 	feet: Option<ItemKind>,
 }
 
-impl EquipmentBuilder {
+impl Equipment {
 	fn new(weapon: ItemKind) -> Self {
 		Self {
 			weapon,
@@ -118,29 +154,19 @@ impl EquipmentBuilder {
 			feet: None,
 		}
 	}
-	fn head(mut self, head: ItemKind) -> Self {
+	fn set_weapon(&mut self, weapon: ItemKind) {
+		self.weapon = weapon;
+	}
+	fn set_head(&mut self, head: ItemKind) {
 		self.head = Some(head);
-		self
 	}
-	fn chest(mut self, chest: ItemKind) -> Self {
+	fn set_chest(&mut self, chest: ItemKind) {
 		self.chest = Some(chest);
-		self
 	}
-	fn legs(mut self, legs: ItemKind) -> Self {
+	fn set_legs(&mut self, legs: ItemKind) {
 		self.legs = Some(legs);
-		self
 	}
-	fn feet(mut self, feet: ItemKind) -> Self {
+	fn set_feet(&mut self, feet: ItemKind) {
 		self.feet = Some(feet);
-		self
-	}
-	fn build(self) -> Equipment {
-		Equipment {
-			weapon: self.weapon,
-			head: self.head,
-			chest: self.chest,
-			legs: self.legs,
-			feet: self.feet,
-		}
 	}
 }
