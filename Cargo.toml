@@ -7,3 +7,9 @@ edition = "2021"
 bevy_ecs = "*"
 valence = { git = "https://github.com/valence-rs/valence" }
 valence_anvil = { git = "https://github.com/valence-rs/valence" }
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
